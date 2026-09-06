@@ -6,11 +6,12 @@ struct ActionPopoverView: View {
     var onCompleteTask: () -> Void
     var onPauseTask: () -> Void
     var onChangeTask: () -> Void
-    var onChangeLogPath: () -> Void
+    var onLogPastSession: () -> Void
+    var onChangeDataDirectory: () -> Void
     var onQuit: () -> Void
 
     @State private var launchAtLogin: Bool = (SMAppService.mainApp.status == .enabled)
-    @State private var logPath: String = CSVLogger.displayPath
+    @State private var dataDirPath: String = CSVLogger.dataDirectoryDisplayPath
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -42,6 +43,16 @@ struct ActionPopoverView: View {
                 Divider().padding(.vertical, 4)
             }
 
+            Button(action: onLogPastSession) {
+                Label("Log past session", systemImage: "clock.arrow.circlepath")
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .buttonStyle(.plain)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+
+            Divider().padding(.vertical, 4)
+
             Toggle(isOn: $launchAtLogin) {
                 Text("Launch at login")
                     .font(.callout)
@@ -62,15 +73,15 @@ struct ActionPopoverView: View {
             Divider().padding(.vertical, 4)
 
             HStack(spacing: 6) {
-                Text(logPath)
+                Text(dataDirPath)
                     .font(.caption)
                     .foregroundColor(.secondary)
                     .lineLimit(1)
                     .truncationMode(.middle)
                 Spacer(minLength: 4)
                 Button("Change…") {
-                    onChangeLogPath()
-                    logPath = CSVLogger.displayPath
+                    onChangeDataDirectory()
+                    dataDirPath = CSVLogger.dataDirectoryDisplayPath
                 }
                 .font(.caption)
                 .buttonStyle(.plain)

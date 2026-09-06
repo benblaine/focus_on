@@ -5,6 +5,7 @@ struct WidgetView: View {
     @EnvironmentObject var store: TaskStore
 
     @State private var pulseOpacity: Double = 1.0
+    @State private var now: Date = Date()
     private static let activeBlue = Color(red: 0.4, green: 0.68, blue: 1.0)
 
     var body: some View {
@@ -34,6 +35,12 @@ struct WidgetView: View {
                         .foregroundColor(.primary)
                         .lineLimit(1)
                         .fixedSize()
+                    if let start = store.currentTaskStartedAt {
+                        Text(elapsedString(from: start, to: now))
+                            .font(.system(size: 13, design: .monospaced))
+                            .foregroundColor(.secondary)
+                            .fixedSize()
+                    }
                 } else {
                     Text("No active task")
                         .font(.system(size: 15, design: .rounded))
@@ -50,6 +57,21 @@ struct WidgetView: View {
             .padding(.vertical, 10)
         }
         // No SwiftUI gestures — drag/tap handled by WidgetContainerView at the NSView level
+        .onReceive(Timer.publish(every: 1, on: .main, in: .common).autoconnect()) { tick in
+            now = tick
+        }
+    }
+
+    private func elapsedString(from start: Date, to end: Date) -> String {
+        let total = max(0, Int(end.timeIntervalSince(start)))
+        let h = total / 3600
+        let m = (total % 3600) / 60
+        let s = total % 60
+        if h > 0 {
+            return String(format: "%d:%02d:%02d", h, m, s)
+        } else {
+            return String(format: "%d:%02d", m, s)
+        }
     }
 
     private func updatePulse(active: Bool) {

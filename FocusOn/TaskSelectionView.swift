@@ -2,10 +2,12 @@ import SwiftUI
 
 struct TaskSelectionView: View {
     @EnvironmentObject var store: TaskStore
-    var onSelect: (String, Bool) -> Void   // (taskName, completingPrevious)
+    var onSelect: (String, String, Bool) -> Void   // (taskName, projectSlug, completingPrevious)
     var onCancel: () -> Void
     var completingPrevious: Bool
 
+    @State private var selectedProject: String = "personal"
+    @State private var visibleRecentTasks: [TaskStore.RecentTask] = []
     @State private var newTaskText: String = ""
     @FocusState private var fieldFocused: Bool
 
@@ -32,7 +34,29 @@ struct TaskSelectionView: View {
 
             Divider()
 
-            if store.recentTasks.isEmpty {
+            HStack(spacing: 6) {
+                Text("Project")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                Spacer()
+                Picker("", selection: $selectedProject) {
+                    ForEach(store.availableProjects, id: \.self) { project in
+                        Text(project).tag(project)
+                    }
+                }
+                .labelsHidden()
+                .pickerStyle(.menu)
+                .frame(maxWidth: 160)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 6)
+            .onChange(of: selectedProject) { _ in
+                refreshVisibleRecentTasks()
+            }
+
+            Divider()
+
+            if visibleRecentTasks.isEmpty {
                 Text("No recent tasks")
                     .font(.callout)
                     .foregroundColor(.secondary)
@@ -41,9 +65,9 @@ struct TaskSelectionView: View {
             } else {
                 ScrollView {
                     LazyVStack(spacing: 0) {
-                        ForEach(store.recentTasks) { task in
+                        ForEach(visibleRecentTasks) { task in
                             Button {
-                                onSelect(task.name, completingPrevious)
+                                onSelect(task.name, selectedProject, completingPrevious)
                             } label: {
                                 HStack {
                                     VStack(alignment: .leading, spacing: 2) {
@@ -86,12 +110,28 @@ struct TaskSelectionView: View {
             .padding(.vertical, 10)
         }
         .frame(width: 280)
-        .onAppear { fieldFocused = true }
+        .onAppear {
+            selectedProject = store.currentProjectSlug
+            refreshVisibleRecentTasks()
+            // Deferred a tick: the project Picker's onChange-driven state
+            // mutation above can still be settling into a re-render at the
+            // moment onAppear fires, and requesting focus mid-churn is a
+            // known way for @FocusState to silently lose the request in an
+            // NSPopover. Letting that settle first is what actually gets the
+            // field focused reliably.
+            DispatchQueue.main.async {
+                fieldFocused = true
+            }
+        }
+    }
+
+    private func refreshVisibleRecentTasks() {
+        visibleRecentTasks = store.recentTasks(forProject: selectedProject)
     }
 
     private func commitNewTask() {
         let name = newTaskText.trimmingCharacters(in: .whitespaces)
         guard !name.isEmpty else { return }
-        onSelect(name, completingPrevious)
+        onSelect(name, selectedProject, completingPrevious)
     }
 }

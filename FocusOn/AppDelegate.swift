@@ -136,9 +136,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 pop?.close()
                 self?.showTaskSelection(completingPrevious: false)
             },
-            onChangeLogPath: { [weak self, weak pop] in
+            onLogPastSession: { [weak self, weak pop] in
                 pop?.close()
-                self?.pickLogFile()
+                self?.showLogPastSession()
+            },
+            onChangeDataDirectory: { [weak self, weak pop] in
+                pop?.close()
+                self?.pickDataDirectory()
             },
             onQuit: {
                 NSApp.terminate(nil)
@@ -147,7 +151,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         .environmentObject(store)
 
         pop.contentViewController = NSHostingController(rootView: view)
-        pop.contentSize = NSSize(width: 240, height: 140)
+        pop.contentSize = NSSize(width: 240, height: 180)
 
         if let contentView = window.contentView {
             pop.show(relativeTo: rect, of: contentView, preferredEdge: .minY)
@@ -163,9 +167,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         pop.animates = true
 
         let view = TaskSelectionView(
-            onSelect: { [weak self, weak pop] name, completing in
+            onSelect: { [weak self, weak pop] name, project, completing in
                 pop?.close()
-                self?.store.startTask(name, completingPrevious: completing)
+                self?.store.startTask(name, project: project, completingPrevious: completing)
             },
             onCancel: { [weak pop] in
                 pop?.close()
@@ -183,23 +187,50 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         popover = pop
     }
 
+    func showLogPastSession() {
+        dismissPopover()
+
+        let pop = NSPopover()
+        pop.behavior = .transient
+        pop.animates = true
+
+        let view = LogPastSessionView(
+            onSave: { [weak self, weak pop] project, task, from, to, completed in
+                pop?.close()
+                self?.store.logPastSession(project: project, task: task, from: from, to: to, completed: completed)
+            },
+            onCancel: { [weak pop] in
+                pop?.close()
+            }
+        )
+        .environmentObject(store)
+
+        pop.contentViewController = NSHostingController(rootView: view)
+        pop.contentSize = NSSize(width: 300, height: 300)
+
+        if let contentView = panel.contentView {
+            pop.show(relativeTo: contentView.bounds, of: contentView, preferredEdge: .maxY)
+        }
+        popover = pop
+    }
+
     private func dismissPopover() {
         popover?.close()
         popover = nil
     }
 
-    private func pickLogFile() {
-        let panel = NSSavePanel()
-        panel.title = "Choose log file location"
-        panel.nameFieldStringValue = CSVLogger.fileURL.lastPathComponent
-        panel.directoryURL = CSVLogger.fileURL.deletingLastPathComponent()
-        panel.allowedContentTypes = [.commaSeparatedText]
+    private func pickDataDirectory() {
+        let panel = NSOpenPanel()
+        panel.title = "Choose FocusOn data directory"
+        panel.canChooseDirectories = true
+        panel.canChooseFiles = false
         panel.canCreateDirectories = true
+        panel.directoryURL = CSVLogger.dataDirectoryURL
         panel.begin { [weak self] response in
             guard response == .OK, let url = panel.url else { return }
-            CSVLogger.setFilePath(url)
-            CSVLogger.createFileIfNeeded()
-            self?.store.refreshRecentTasks()
+            CSVLogger.setDataDirectory(url)
+            CSVLogger.bootstrapDataDirectoryIfNeeded()
+            self?.store.refreshAvailableProjects()
         }
     }
 }
