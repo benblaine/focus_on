@@ -7,6 +7,8 @@ package pdfgen
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/go-pdf/fpdf"
@@ -23,6 +25,10 @@ const (
 	colDateW   = 28.0
 	colHoursW  = 20.0
 	colAmountW = 32.0
+
+	logoMaxW = 78.0
+	logoMaxH = 16.0
+	logoGap  = 3.0
 )
 
 // renderer bundles the pdf handle with a UTF-8-to-codepage translator: the
@@ -30,8 +36,9 @@ const (
 // every piece of free text (task names, addresses, names) has to go through
 // tr() before it reaches the page or accented characters render as garbage.
 type renderer struct {
-	pdf *fpdf.Fpdf
-	tr  func(string) string
+	pdf     *fpdf.Fpdf
+	tr      func(string) string
+	dataDir string
 }
 
 // Render writes inv as a PDF to outPath. business and client supply the
@@ -39,12 +46,18 @@ type renderer struct {
 // (the invoice only stores the client's slug and the currency/rate it billed
 // at — see spec_v2.md, "Invoice Ledger").
 func Render(inv invoicing.Invoice, business manifest.Business, client manifest.Client, outPath string) error {
+	return RenderIn(inv, business, client, outPath, "")
+}
+
+// RenderIn is Render plus a data directory, used to resolve a relative
+// business.Logo path.
+func RenderIn(inv invoicing.Invoice, business manifest.Business, client manifest.Client, outPath, dataDir string) error {
 	pdf := fpdf.New("P", "mm", "A4", "")
 	pdf.SetMargins(marginMM, marginMM, marginMM)
 	pdf.SetAutoPageBreak(true, marginMM)
 	pdf.AddPage()
 
-	r := renderer{pdf: pdf, tr: pdf.UnicodeTranslatorFromDescriptor("")}
+	r := renderer{pdf: pdf, tr: pdf.UnicodeTranslatorFromDescriptor(""), dataDir: dataDir}
 
 	r.header(inv, business)
 	r.billTo(client)
@@ -73,9 +86,12 @@ func (r renderer) borderedCell(w, h float64, txt, align string, fill bool, ln in
 func (r renderer) header(inv invoicing.Invoice, business manifest.Business) {
 	pdf := r.pdf
 	top := pdf.GetY()
+	leftY := r.placeLogo(business, top)
 
-	pdf.SetFont("Helvetica", "B", 16)
-	r.cellLn(usableW/2, 8, business.Name, "L", false)
+	pdf.SetY(leftY)
+	pdf.SetFont("Helvetica", "B", 14)
+	pdf.SetX(marginMM)
+	pdf.MultiCell(usableW/2, 6, r.tr(business.Name), "", "L", false)
 
 	pdf.SetFont("Helvetica", "", 10)
 	for _, line := range addressLines(business.Address) {
@@ -132,6 +148,52 @@ func maxFloat(a, b float64) float64 {
 	return b
 }
 
+func (r renderer) placeLogo(business manifest.Business, top float64) float64 {
+	info, name := r.registerLogo(business)
+	if info == nil || name == "" {
+		return top
+	}
+	natW, natH := info.Extent()
+	if natW <= 0 || natH <= 0 {
+		return top
+	}
+	w := logoMaxW
+	h := w * natH / natW
+	if h > logoMaxH {
+		h = logoMaxH
+		w = h * natW / natH
+	}
+	r.pdf.Image(name, marginMM, top, w, h, false, "", 0, "")
+	return top + h + logoGap
+}
+
+func (r renderer) registerLogo(business manifest.Business) (*fpdf.ImageInfoType, string) {
+	logo := strings.TrimSpace(business.Logo)
+	if logo == "-" {
+		return nil, ""
+	}
+	if logo != "" {
+		p := logo
+		if !filepath.IsAbs(p) && r.dataDir != "" {
+			p = filepath.Join(r.dataDir, p)
+		}
+		if _, err := os.Stat(p); err != nil {
+			return nil, ""
+		}
+		ext := strings.ToLower(strings.TrimPrefix(filepath.Ext(p), "."))
+		if ext == "jpeg" {
+			ext = "jpg"
+		}
+		info := r.pdf.RegisterImageOptions(p, fpdf.ImageOptions{ImageType: ext, ReadDpi: true})
+		if info == nil || r.pdf.Err() {
+			r.pdf.ClearError() // don't fail the whole invoice over a bad logo file
+			return nil, ""
+		}
+		return info, p
+	}
+	return nil, ""
+}
+
 func (r renderer) billTo(client manifest.Client) {
 	pdf := r.pdf
 	pdf.SetFont("Helvetica", "B", 10)
@@ -149,6 +211,9 @@ func (r renderer) billTo(client manifest.Client) {
 	if client.ContactEmail != "" {
 		r.cellLn(usableW, 5, client.ContactEmail, "L", false)
 	}
+	if client.VATNumber != "" {
+		r.cellLn(usableW, 5, "VAT No: "+client.VATNumber, "L", false)
+	}
 	pdf.Ln(6)
 }
 
@@ -160,7 +225,7 @@ func (r renderer) lineItems(inv invoicing.Invoice) {
 	pdf.SetFillColor(235, 235, 235)
 	r.borderedCell(colDateW, 7, "Date", "L", true, 0)
 	r.borderedCell(taskColW, 7, "Task", "L", true, 0)
-	r.borderedCell(colHoursW, 7, "Hours", "R", true, 0)
+	r.borderedCell(colHoursW, 7, qtyHeader(inv), "R", true, 0)
 	r.borderedCell(colAmountW, 7, "Amount", "R", true, 1)
 
 	pdf.SetFont("Helvetica", "", 9)
@@ -174,13 +239,39 @@ func (r renderer) lineItems(inv invoicing.Invoice) {
 	pdf.Ln(4)
 }
 
+func qtyHeader(inv invoicing.Invoice) string {
+	if inv.QuantityUnit == "day" {
+		return "Days"
+	}
+	return "Hours"
+}
+
+func unitSuffix(inv invoicing.Invoice) string {
+	if inv.QuantityUnit == "day" {
+		return "day"
+	}
+	return "hr"
+}
+
 func (r renderer) totals(inv invoicing.Invoice) {
 	pdf := r.pdf
 	labelW := usableW - colAmountW
+	unit := unitSuffix(inv)
+	rateNote := ""
+	if inv.RateIncludesVAT && inv.VATPercent > 0 {
+		rateNote = " incl VAT"
+	}
 
 	pdf.SetFont("Helvetica", "", 10)
-	r.cell(labelW, 6, fmt.Sprintf("Total hours (at %.2f %s/hr)", inv.Rate, inv.Currency), "R", false)
+	r.cell(labelW, 6, fmt.Sprintf("Total %s (at %.2f %s/%s%s)", strings.ToLower(qtyHeader(inv)), inv.Rate, inv.Currency, unit, rateNote), "R", false)
 	r.cellLn(colAmountW, 6, fmt.Sprintf("%.2f", inv.TotalHours), "R", false)
+
+	if inv.VATPercent > 0 {
+		r.cell(labelW, 6, "Subtotal ex VAT", "R", false)
+		r.cellLn(colAmountW, 6, fmt.Sprintf("%.2f", inv.Subtotal), "R", false)
+		r.cell(labelW, 6, fmt.Sprintf("VAT %.2f%%", inv.VATPercent), "R", false)
+		r.cellLn(colAmountW, 6, fmt.Sprintf("%.2f", inv.VATAmount), "R", false)
+	}
 
 	pdf.SetFont("Helvetica", "B", 11)
 	r.cell(labelW, 8, "Total due", "R", false)
