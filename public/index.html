@@ -50,9 +50,7 @@
 *{box-sizing:border-box;}
 body{
   margin:0;
-  background:
-    repeating-linear-gradient(var(--bg) 0 27px, var(--bg-line) 27px 28px),
-    var(--bg);
+  background:var(--bg);
   color:var(--ink);
   font-family:"Source Serif 4", Georgia, "Times New Roman", serif;
   font-size:17px;
@@ -100,6 +98,8 @@ nav a{
   padding-bottom:2px;
 }
 nav a:hover{color:var(--ink); border-bottom-color:var(--rule);}
+.icon-link{display:inline-flex; align-items:center; color:var(--ink-dim); border-bottom:none !important;}
+.icon-link:hover{color:var(--ink);}
 
 /* ---------- hero ---------- */
 .hero{padding:64px 0 52px;}
@@ -135,7 +135,7 @@ nav a:hover{color:var(--ink); border-bottom-color:var(--rule);}
 
 /* ---------- section shell ---------- */
 section{padding:50px 0;}
-.divider{border:none; border-top:1px dashed var(--rule); margin:0;}
+.divider{border:none; border-top:1px solid var(--rule); margin:0;}
 .section-head{display:flex; align-items:baseline; gap:14px; margin-bottom:26px; flex-wrap:wrap;}
 .section-head h2{
   font-family:"Special Elite", "Courier New", monospace;
@@ -149,39 +149,9 @@ section{padding:50px 0;}
   text-transform:uppercase;
 }
 
-/* ---------- old deal (fake invoice) ---------- */
-.receipt{
-  background:var(--surface);
-  border:1px solid var(--surface-border);
-  padding:26px 28px;
-  position:relative;
-  overflow:hidden;
-}
-.receipt-row{
-  display:flex; justify-content:space-between; gap:16px;
-  padding:10px 0;
-  border-bottom:1px dashed var(--rule);
-  font-family:"IBM Plex Mono", monospace;
-  font-size:.86rem;
-}
-.receipt-row:last-of-type{border-bottom:none;}
-.receipt-row .who{color:var(--ink);}
-.receipt-row .what{color:var(--ink-dim); text-align:right;}
-.stamp{
-  position:absolute;
-  top:22px; right:28px;
-  transform:rotate(-8deg);
-  border:2px solid var(--accent);
-  color:var(--accent);
-  font-family:"Special Elite", monospace;
-  font-size:.78rem;
-  letter-spacing:.12em;
-  padding:5px 10px;
-  text-transform:uppercase;
-  background:var(--accent-soft);
-}
+/* ---------- old deal ---------- */
 .receipt-note{
-  margin-top:20px;
+  margin-top:18px;
   font-family:"Special Elite", "Courier New", monospace;
   color:var(--ink);
   font-size:1.02rem;
@@ -253,7 +223,7 @@ section{padding:50px 0;}
   gap:14px;
   align-items:baseline;
   padding:11px 0;
-  border-bottom:1px dashed var(--rule);
+  border-bottom:1px solid var(--rule);
   font-size:.92rem;
 }
 .invoice-line:last-of-type{border-bottom:none;}
@@ -280,17 +250,6 @@ section{padding:50px 0;}
   padding:6px 12px;
   border:1px solid var(--green);
 }
-.paid-stamp{
-  position:absolute; top:26px; right:32px;
-  transform:rotate(6deg);
-  border:2px solid var(--green);
-  color:var(--green);
-  font-family:"Special Elite", monospace;
-  letter-spacing:.16em;
-  font-size:.85rem;
-  padding:6px 14px;
-  background:var(--green-soft);
-}
 .invoice figcaption{
   margin-top:12px;
   font-family:"IBM Plex Mono", monospace;
@@ -301,18 +260,13 @@ section{padding:50px 0;}
 }
 
 /* ---------- closing ---------- */
-.commit{
-  background:var(--surface);
-  border:1px solid var(--surface-border);
-  padding:24px 26px;
-  font-family:"IBM Plex Mono", monospace;
-  font-size:.88rem;
-  color:var(--ink-dim);
+.closing{
+  font-family:"Special Elite", "Courier New", monospace;
+  color:var(--ink);
+  font-size:1.15rem;
+  line-height:1.55;
   max-width:640px;
 }
-.commit .h1line{color:var(--green);}
-.commit .meta{color:var(--ink-faint); margin:2px 0 14px;}
-.commit p{margin:0; color:var(--ink); font-size:.95rem; line-height:1.6;}
 
 footer{
   padding:34px 0 50px;
@@ -326,7 +280,6 @@ footer .wrap{
 @media (max-width:560px){
   .invoice-line{grid-template-columns:1fr; gap:2px;}
   .invoice-line .hrs,.invoice-line .rate,.invoice-line .log{text-align:left;}
-  .stamp,.paid-stamp{position:static; display:inline-block; transform:rotate(-4deg); margin-bottom:16px;}
 }
 </style>
 
@@ -334,9 +287,10 @@ footer .wrap{
   <div class="wrap">
     <div class="wordmark">Focus<span>On</span></div>
     <nav>
-      <a href="#deal">The Deal</a>
-      <a href="#stack">The Stack</a>
-      <a href="#invoice">Sample Invoice</a>
+      <a href="https://github.com/ckritzinger/focus_on" class="icon-link" aria-label="View source on GitHub">
+        <svg viewBox="0 0 16 16" width="20" height="20" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8a8 8 0 0 0 5.47 7.59c.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.5 7.5 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8 8 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
+      </a>
+      <a href="https://intuitably.com">Made with ❤️ by intuitably</a>
     </nav>
   </div>
 </header>
@@ -347,10 +301,6 @@ footer .wrap{
       <p class="eyebrow">A time tracker for freelancers</p>
       <h1>Track your time. Invoice your clients.<br>Own your data, forever.</h1>
       <p class="sub">You went freelance so nobody could own you. <strong>Why let a subscription own your invoices?</strong> FocusOn tracks hours and generates invoices from files on your own disk — no account, no monthly bill, no company standing between you and your own timesheet.</p>
-      <div class="cta-row">
-        <a class="cta" href="#deal">See the old deal</a>
-        <a class="cta" href="#invoice">See a sample invoice</a>
-      </div>
     </div>
   </section>
 
@@ -360,16 +310,9 @@ footer .wrap{
     <div class="wrap">
       <div class="section-head">
         <h2>The old deal</h2>
-        <span class="tag">Toggl · Harvest · Clockify</span>
       </div>
-      <p class="prose" style="color:var(--ink-dim); margin-bottom:22px;">Good tools, bad bargain. You feed them every hour you work, every client you have, every rate you charge — and the bill only ever climbs.</p>
-      <div class="receipt">
-        <div class="stamp">Rate&nbsp;Increase</div>
-        <div class="receipt-row"><span class="who">Toggl Track</span><span class="what">$9–18/user/mo · billable rates gated</span></div>
-        <div class="receipt-row"><span class="who">Harvest</span><span class="what">acquired 2025 → usage fees added 2026</span></div>
-        <div class="receipt-row"><span class="who">Clockify</span><span class="what">per-user pricing once invoicing is needed</span></div>
-        <p class="receipt-note">That's the deal. It does not get better.</p>
-      </div>
+      <p class="prose" style="color:var(--ink-dim);">Hosted time trackers are good tools with a bad bargain buried in them. You feed them every hour you work, every client you have, every rate you charge, and they bill you what they want. One of the biggest names in the category was acquired in 2025; its new owner added usage fees on top of the seat price in 2026.</p>
+      <p class="receipt-note">That's the deal. It does not get better.</p>
     </div>
   </section>
 
@@ -407,6 +350,11 @@ footer .wrap{
           <h3>Widget</h3>
           <p>A native floating window. Survives full-screen apps, remembers where you left it.</p>
         </div>
+        <div class="part">
+          <span class="code">06 · MODEL</span>
+          <h3>Free</h3>
+          <p>As in beer: $0, no seat, no subscription. As in speech: MIT-licensed.</p>
+        </div>
       </div>
     </div>
   </section>
@@ -418,50 +366,7 @@ footer .wrap{
       <div class="section-head">
         <h2>No spinners, no outages</h2>
       </div>
-      <p class="plain-block">Boring technology has <strong>no backend to go down</strong> — no spinner, no outage, no "service temporarily unavailable" the moment a client is waiting on an invoice. The widget and the CLI read your own files. There is no server to have an incident.</p>
-    </div>
-  </section>
-
-  <hr class="divider">
-
-  <section id="invoice">
-    <div class="wrap">
-      <div class="section-head">
-        <h2>Invoicing, built plain</h2>
-        <span class="tag">Sample invoice — example data</span>
-      </div>
-      <p class="prose" style="color:var(--ink-dim); margin-bottom:26px;">Clients, rates, PDF generation, and double-billing protection — not bolted on, but a direct consequence of building the invoice on the same durable, auditable log as the time entries.</p>
-      <figure class="invoice" style="margin:0;">
-        <div class="paid-stamp">Paid</div>
-        <div class="invoice-head">
-          <div class="to"><strong>Bramblewood Studio</strong>Website redesign — January 2026</div>
-          <div class="meta">INVOICE FOC-2026-0114<br>ISSUED 2026-01-16</div>
-        </div>
-        <div class="invoice-line">
-          <span class="desc">Website redesign consult</span>
-          <span class="hrs">4.50 hrs</span>
-          <span class="rate">@ $95/hr</span>
-          <span class="log">log:9f3a21c</span>
-        </div>
-        <div class="invoice-line">
-          <span class="desc">API integration</span>
-          <span class="hrs">6.25 hrs</span>
-          <span class="rate">@ $95/hr</span>
-          <span class="log">log:2b7e04a</span>
-        </div>
-        <div class="invoice-line">
-          <span class="desc">Client review call</span>
-          <span class="hrs">1.00 hrs</span>
-          <span class="rate">@ $95/hr</span>
-          <span class="log">log:c14d9f0</span>
-        </div>
-        <div class="invoice-total">
-          <span>Total</span>
-          <span class="amt">$1,116.25</span>
-        </div>
-        <div class="badge">✓ double-billing check — 0 duplicates across 3 log entries</div>
-        <figcaption>Example data, not a real client. Every line traces back to one CSV log entry.</figcaption>
-      </figure>
+      <p class="plain-block">Boring technology has <strong>no backend to go down</strong> the moment a client is waiting on an invoice.</p>
     </div>
   </section>
 
@@ -469,11 +374,7 @@ footer .wrap{
 
   <section>
     <div class="wrap">
-      <div class="commit">
-        <div class="h1line">commit 8f2c1a0e</div>
-        <div class="meta">Author: you &lt;you@yourself&gt;<br>Date: today</div>
-        <p>That's the whole pitch: everything a paid time tracker does for you, built from parts too boring to ever need a new pricing tier. So nobody can quietly change the deal on you again.</p>
-      </div>
+      <p class="closing">That's the whole pitch: everything a paid time tracker does for you, built from parts too boring to ever need a new pricing tier. So nobody can quietly change the deal on you again.</p>
     </div>
   </section>
 </main>
