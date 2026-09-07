@@ -26,9 +26,11 @@ const (
 	colHoursW  = 20.0
 	colAmountW = 32.0
 
-	logoMaxW = 78.0
-	logoMaxH = 16.0
-	logoGap  = 3.0
+	// Letterhead mark, not a banner. Wide wordmarks at 78×16mm dominated
+	// the page; 48×10mm sits in the header without shouting.
+	logoMaxW = 48.0
+	logoMaxH = 10.0
+	logoGap  = 2.0
 )
 
 // renderer bundles the pdf handle with a UTF-8-to-codepage translator: the
@@ -88,29 +90,43 @@ func (r renderer) header(inv invoicing.Invoice, business manifest.Business) {
 	top := pdf.GetY()
 	leftY := r.placeLogo(business, top)
 
-	pdf.SetY(leftY)
-	pdf.SetFont("Helvetica", "B", 14)
-	pdf.SetX(marginMM)
-	pdf.MultiCell(usableW/2, 6, r.tr(business.Name), "", "L", false)
+	logoPlaced := leftY > top
 
-	pdf.SetFont("Helvetica", "", 10)
+	pdf.SetY(leftY)
+	pdf.SetX(marginMM)
+	// With a logo the mark is the identity; the legal name is a caption,
+	// not a second headline. Without a logo the name still has to carry
+	// the header, so it stays 14pt bold.
+	nameH, bodyH := 6.0, 5.0
+	if logoPlaced {
+		pdf.SetFont("Helvetica", "", 9)
+		nameH, bodyH = 4.5, 4.2
+	} else {
+		pdf.SetFont("Helvetica", "B", 14)
+	}
+	pdf.MultiCell(usableW/2, nameH, r.tr(business.Name), "", "L", false)
+
+	pdf.SetFont("Helvetica", "", 9)
+	if !logoPlaced {
+		pdf.SetFont("Helvetica", "", 10)
+	}
 	for _, line := range addressLines(business.Address) {
-		r.cellLn(usableW/2, 5, line, "L", false)
+		r.cellLn(usableW/2, bodyH, line, "L", false)
 	}
 	if business.Email != "" {
-		r.cellLn(usableW/2, 5, business.Email, "L", false)
+		r.cellLn(usableW/2, bodyH, business.Email, "L", false)
 	}
 	if business.RegistrationNumber != "" {
-		r.cellLn(usableW/2, 5, "Reg number: "+business.RegistrationNumber, "L", false)
+		r.cellLn(usableW/2, bodyH, "Reg number: "+business.RegistrationNumber, "L", false)
 	}
 	if business.VATNote != "" {
-		r.cellLn(usableW/2, 5, business.VATNote, "L", false)
+		r.cellLn(usableW/2, bodyH, business.VATNote, "L", false)
 	}
 	leftEndY := pdf.GetY()
 
 	pdf.SetXY(marginMM+usableW/2, top)
-	pdf.SetFont("Helvetica", "B", 20)
-	r.cellLn(usableW/2, 8, "INVOICE", "R", false)
+	pdf.SetFont("Helvetica", "B", 14)
+	r.cellLn(usableW/2, 6, "INVOICE", "R", false)
 
 	pdf.SetX(marginMM + usableW/2)
 	pdf.SetFont("Helvetica", "", 10)
